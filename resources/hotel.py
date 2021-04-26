@@ -1,14 +1,82 @@
 from flask_restful import Resource, reqparse
 from models.hotel import HotelModel
 from flask_jwt_extended import jwt_required
+import sqlite3
+
+
+def normalize_path_params(cidade=None,
+                          estrelas_min=0, estrelas_max=5,
+                          diaria_min=0, diaria_max=10000,
+                          limit=50, offset=0,
+                          **dados):
+    if cidade:
+        return {
+            'estrelas_min': estrelas_min,
+            'estrelas_max': estrelas_max,
+            'diaria_max': diaria_max,
+            'diaria_min': diaria_min,
+            'cidade': cidade,
+            'limit': limit,
+            'offset': offset
+        }
+    else:
+        return {
+            'estrelas_min': estrelas_min,
+            'estrelas_max': estrelas_max,
+            'diaria_max': diaria_max,
+            'diaria_min': diaria_min,
+            'limit': limit,
+            'offset': offset
+        }
+
+
+path_params = reqparse.RequestParser()
+path_params.add_argument('cidade', type=str)
+path_params.add_argument('estrelas_min', type=float)
+path_params.add_argument('estrelas_max', type=float)
+path_params.add_argument('diaria_min', type=float)
+path_params.add_argument('diaria_max', type=float)
+path_params.add_argument('limit', type=float)
+path_params.add_argument('offset', type=float)
 
 
 class Hoteis(Resource):
+    # /hoteis
     def get(self):
-        return {'hoteis': [hotel.json() for hotel in HotelModel.query.all()]}
+        connection = sqlite3.connect('banco.db')
+        cursor = connection.cursor()
+
+        dados = path_params.parse_args()
+        dados_validos = {chave: dados[chave] for chave in dados if dados[chave] is not None}
+
+        parameters = normalize_path_params(**dados_validos)
+
+        if not parameters.get('cidade'):
+            consulta = "SELECT * FROM hoteis WHERE (estrelas > ? and estrelas < ?) " \
+                       "and (diaria <= ? and diaria >= ?) " \
+                       "LIMIT ? OFFSET ?"
+        else:
+            consulta = "SELECT * FROM hoteis WHERE (estrelas > ? and estrelas < ?) " \
+                       "and (diaria <= ? and diaria >= ?) " \
+                       "and cidade = ?" \
+                       "LIMIT ? OFFSET ?"
+        tupla = tuple([parameters[chave] for chave in parameters])
+        resultado = cursor.execute(consulta, tupla)
+
+        hoteis = []
+        for line in resultado:
+            hoteis.append({
+                'hotel_id': line[0],
+                'nome': line[1],
+                'estrelas': line[2],
+                'diaria': line[3],
+                'cidade': line[4],
+            })
+        return {'hoteis': hoteis}
 
 
 class Hotel(Resource):
+    # /hotel/{id}
     argumentos = reqparse.RequestParser()
     argumentos.add_argument('nome', type=str, required=True, help='The field cannot be left blank')
     argumentos.add_argument('estrelas', type=float, required=True, help='The field cannot be left blank')

@@ -44,6 +44,7 @@ class UserRegister(Resource):
 
 
 class UserLogin(Resource):
+    # /login
     @classmethod
     def post(cls):
         dados = atributos.parse_args()
@@ -57,6 +58,7 @@ class UserLogin(Resource):
 
 
 class UserLogout(Resource):
+    # /logout
     @jwt_required()
     def post(self):
         jwt_id = get_jwt()['jti']
