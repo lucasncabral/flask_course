@@ -3,32 +3,7 @@ from models.hotel import HotelModel
 from flask_jwt_extended import jwt_required
 import sqlite3
 
-
-def normalize_path_params(cidade=None,
-                          estrelas_min=0, estrelas_max=5,
-                          diaria_min=0, diaria_max=10000,
-                          limit=50, offset=0,
-                          **dados):
-    if cidade:
-        return {
-            'estrelas_min': estrelas_min,
-            'estrelas_max': estrelas_max,
-            'diaria_max': diaria_max,
-            'diaria_min': diaria_min,
-            'cidade': cidade,
-            'limit': limit,
-            'offset': offset
-        }
-    else:
-        return {
-            'estrelas_min': estrelas_min,
-            'estrelas_max': estrelas_max,
-            'diaria_max': diaria_max,
-            'diaria_min': diaria_min,
-            'limit': limit,
-            'offset': offset
-        }
-
+from resources.filtros import normalize_path_params, consulta_sem_cidade, consulta_com_cidade
 
 path_params = reqparse.RequestParser()
 path_params.add_argument('cidade', type=str)
@@ -45,32 +20,18 @@ class Hoteis(Resource):
     def get(self):
         connection = sqlite3.connect('banco.db')
         cursor = connection.cursor()
-
         dados = path_params.parse_args()
         dados_validos = {chave: dados[chave] for chave in dados if dados[chave] is not None}
-
         parameters = normalize_path_params(**dados_validos)
 
-        if not parameters.get('cidade'):
-            consulta = "SELECT * FROM hoteis WHERE (estrelas > ? and estrelas < ?) " \
-                       "and (diaria <= ? and diaria >= ?) " \
-                       "LIMIT ? OFFSET ?"
-        else:
-            consulta = "SELECT * FROM hoteis WHERE (estrelas > ? and estrelas < ?) " \
-                       "and (diaria <= ? and diaria >= ?) " \
-                       "and cidade = ?" \
-                       "LIMIT ? OFFSET ?"
+        consulta = consulta_sem_cidade if not parameters.get('cidade') else consulta_com_cidade
         tupla = tuple([parameters[chave] for chave in parameters])
         resultado = cursor.execute(consulta, tupla)
 
         hoteis = []
         for line in resultado:
             hoteis.append({
-                'hotel_id': line[0],
-                'nome': line[1],
-                'estrelas': line[2],
-                'diaria': line[3],
-                'cidade': line[4],
+                'hotel_id': line[0], 'nome': line[1], 'estrelas': line[2], 'diaria': line[3], 'cidade': line[4],
             })
         return {'hoteis': hoteis}
 
