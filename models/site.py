@@ -1,11 +1,11 @@
-from sql_alchemy import banco
+from sql_alchemy import db
 
 
-class SiteModel(banco.Model):
+class SiteModel(db.Model):
     __tablename__ = 'sites'
-    site_id = banco.Column(banco.Integer, primary_key=True)
-    url = banco.Column(banco.String(150))
-    hoteis = banco.relationship('HotelModel')
+    site_id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String(150))
+    hoteis = db.relationship('HotelModel')
 
     def __init__(self, url):
         self.url = url
@@ -32,11 +32,11 @@ class SiteModel(banco.Model):
         return None
 
     def save_site(self):
-        banco.session.add(self)
-        banco.session.commit()
+        db.session.add(self)
+        db.session.commit()
 
     def delete_site(self):
         [hotel.delete_hotel() for hotel in self.hoteis]
 
-        banco.session.delete(self)
-        banco.session.commit()
+        db.session.delete(self)
+        db.session.commit()

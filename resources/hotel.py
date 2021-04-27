@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required
 import sqlite3
 
 from models.site import SiteModel
-from resources.filtros import normalize_path_params, consulta_sem_cidade, consulta_com_cidade
+from utils.filtros import normalize_path_params, consulta_sem_cidade, consulta_com_cidade
 
 path_params = reqparse.RequestParser()
 path_params.add_argument('cidade', type=str)
