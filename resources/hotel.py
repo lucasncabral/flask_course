@@ -3,6 +3,7 @@ from models.hotel import HotelModel
 from flask_jwt_extended import jwt_required
 import sqlite3
 
+from models.site import SiteModel
 from resources.filtros import normalize_path_params, consulta_sem_cidade, consulta_com_cidade
 
 path_params = reqparse.RequestParser()
@@ -32,6 +33,7 @@ class Hoteis(Resource):
         for line in resultado:
             hoteis.append({
                 'hotel_id': line[0], 'nome': line[1], 'estrelas': line[2], 'diaria': line[3], 'cidade': line[4],
+                'site_id': line[5]
             })
         return {'hoteis': hoteis}
 
@@ -43,6 +45,7 @@ class Hotel(Resource):
     argumentos.add_argument('estrelas', type=float, required=True, help='The field cannot be left blank')
     argumentos.add_argument('diaria')
     argumentos.add_argument('cidade')
+    argumentos.add_argument('site_id', type=int, required=True, help='Needs be linked with site')
 
     def get(self, hotel_id):
         hotel = HotelModel.find_hotel(hotel_id)
@@ -56,6 +59,10 @@ class Hotel(Resource):
             return {"message": "Hotel id '{}' already exists.".format(hotel_id)}, 400
         dados = Hotel.argumentos.parse_args()
         hotel = HotelModel(hotel_id, **dados)
+
+        if not SiteModel.find_by_id(dados.get('site_id')):
+            return {'message': 'The hotel must be associated to a valid site id'}, 400
+
         try:
             hotel.save_hotel()
         except Exception:
